@@ -5,31 +5,32 @@ import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.Transformations;
 import android.arch.lifecycle.ViewModel;
 
-import com.example.bean.User;
+import com.example.bean.Data;
 
 /**
  * https://blog.csdn.net/jaikydota163/article/details/78645012
  * https://blog.csdn.net/DaltSoftware/article/details/80362249
  */
 public class ShareViewModel extends ViewModel {
-    private MutableLiveData<User> mutableLiveData = new MutableLiveData<>();
+    private MutableLiveData<Data> mData = new MutableLiveData<>();
+
     //采用非Lambda表达式的定义方式
-//    private LiveData<String> mMapData = Transformations.map(mutableLiveData, new Function<User, String>() {
+//    private LiveData<String> mMapData = Transformations.map(mData, new Function<Data, String>() {
 //        @Override
-//        public String apply(User value) {
+//        public String apply(Data value) {
 //            return value.getNum() + value.getUnit1() + "---" + value.getUnit2();
 //        }
 //    });
 
     //采用Lambda表达式做Transformations.map
-    private LiveData<String> mMapData = Transformations.map(mutableLiveData, value -> {
-        return value.getName() + value.getAge()+"";
+    private LiveData<String> mMapData = Transformations.map(mData, value -> {
+        return value.getNum() + value.getUnit1() + "---" + value.getUnit2();
     });
 
     //采用Lambda表达式做Transformations.switchMap
-    private LiveData<String> mSitchMapData = Transformations.switchMap(mutableLiveData, value -> {
+    private LiveData<String> mSitchMapData = Transformations.switchMap(mData, value -> {
         MutableLiveData<String> dataLiveData = new MutableLiveData<>();
-        dataLiveData.setValue(value.getName() + value.getAge());
+        dataLiveData.setValue(value.getNum() + value.getUnit1() + "/" + value.getUnit2());
         return dataLiveData;
     });
 
@@ -42,18 +43,18 @@ public class ShareViewModel extends ViewModel {
     }
 
     public ShareViewModel(){
-        setData(new User());
+        setData(new Data());
     }
 
-    public void setData(User data) {
-        mutableLiveData.setValue(data);
+    public void setData(Data data) {
+        mData.setValue(data);
     }
 
     public void setValue(int value){
-        mutableLiveData.getValue().setAge(value);
+        mData.getValue().setValue(value);
     }
 
-    public MutableLiveData<User> getData() {
-        return mutableLiveData;
+    public MutableLiveData<Data> getData() {
+        return mData;
     }
 }
