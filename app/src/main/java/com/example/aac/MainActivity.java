@@ -1,98 +1,123 @@
 package com.example.aac;
 
-import android.arch.lifecycle.AndroidViewModel;
-import android.arch.lifecycle.Lifecycle;
-import android.arch.lifecycle.LifecycleOwner;
 import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProvider;
 import android.arch.lifecycle.ViewModelProviders;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.SeekBar;
+import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.example.bean.Data;
-import com.uber.autodispose.android.lifecycle.AndroidLifecycleScopeProvider;
+import com.example.bean.NewsDataVo;
 
-public class MainActivity extends AppCompatActivity implements LifecycleOwner {
+import java.util.ArrayList;
+import java.util.List;
 
-    private ShareViewModel mModel;
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private SeekBar mSeekBar;
-    private TextView mCurrStatusTv;
-
+    private MainActivity mActivity;
+    private NewsViewModel newsViewModel;
+    private DataAdapter dataAdapter;
+    private List<NewsDataVo> mData;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        //添加LifeCycleObserver，可以非UI业务逻辑放到Observer
-        getLifecycle().addObserver(new MyLifeCycleObserver());
-        initViews();
+        initView();
+        addObserver();
     }
 
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.do_btn_tv:
+                newsViewModel.httpGetData();
+                break;
+            default:
+                break;
+        }
+    }
 
-    private void initViews() {
-        mModel = ViewModelProviders.of(this).get(ShareViewModel.class);
-        mSeekBar = findViewById(R.id.value_bar);
-        mCurrStatusTv = findViewById(R.id.curr_status);
-        mModel.getData().observe(this, new Observer<Data>() {
+    public void initView() {
+        mActivity = this;
+        mData = new ArrayList<>();
+        dataAdapter = new DataAdapter(mData);
+        findViewById(R.id.do_btn_tv).setOnClickListener(this);
+        RecyclerView recyclerView = findViewById(R.id.data_list_rv);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setLayoutManager(new LinearLayoutManager(mActivity));
+        recyclerView.setAdapter(dataAdapter);
+    }
+
+    private void addObserver() {
+        AccLifecycleObserver observer = new AccLifecycleObserver(mActivity);
+        getLifecycle().addObserver(observer);
+        ViewModelProvider.AndroidViewModelFactory instance =
+                ViewModelProvider.AndroidViewModelFactory.getInstance(this.getApplication());
+
+        //newsViewModel = instance.create(NewsViewModel.class);
+
+        newsViewModel = ViewModelProviders.of(this).get(NewsViewModel.class);
+
+
+        newsViewModel.getSwitchDataMap().observe(mActivity, new Observer<NewsDataVo>() {
             @Override
-            public void onChanged(@Nullable Data data) {
-                mSeekBar.setProgress(data.getNum());
-            }
-        });
-
-        //可以采用lambda表达式
-//        mModel.getData().observe(this, data -> {
-//            mSeekBar.setProgress(data.getNum());
-//        });
-
-        mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                setData(progress);
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-
-        findViewById(R.id.change_value).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int value = mModel.getData().getValue().getNum();
-                if(value > 95){
-                    value = 0;
-                }
-                setData(value + 5);
-            }
-        });
-
-        mCurrStatusTv.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //显示当前Activity State
-                mCurrStatusTv.setText("当前Activity状态是：" + getLifecycle().getCurrentState().name());
+            public void onChanged(@Nullable NewsDataVo dataVo) {
+                assert dataVo != null;
+                mData.add(dataVo);
+                dataAdapter.notifyDataSetChanged();
             }
         });
     }
 
-    /**
-     * 更新ViewModel的值，如果不想重新创建新的对象，可以直接取出原来的数据对象，重新set即可
-     * @param value
-     */
-    private void setData(int value) {
-        Data data = mModel.getData().getValue();
-        data.setValue(value);
-        mModel.setData(data);
+
+    class DataAdapter extends RecyclerView.Adapter<DataAdapter.ViewData> {
+
+        private List<NewsDataVo> mData;
+
+        DataAdapter(List<NewsDataVo> mData) {
+            this.mData = mData;
+        }
+
+        @NonNull
+        @Override
+        public ViewData onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
+            return new ViewData(LayoutInflater.from(mActivity).inflate(R.layout.news_item, viewGroup, false));
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewData viewData, int i) {
+            NewsDataVo newsDataVo = mData.get(i);
+            viewData.numTv.setText(newsDataVo.getReadNum() + "人阅读");
+            viewData.titleTv.setText(newsDataVo.getNewsTitle());
+            viewData.contentTv.setText(newsDataVo.getNewsContent());
+        }
+
+        @Override
+        public int getItemCount() {
+            return mData.size();
+        }
+
+        class ViewData extends RecyclerView.ViewHolder {
+            private ImageView imageView;
+            private TextView titleTv;
+            private TextView contentTv;
+            private TextView numTv;
+
+            public ViewData(@NonNull View itemView) {
+                super(itemView);
+                imageView = itemView.findViewById(R.id.image_iv);
+                titleTv = itemView.findViewById(R.id.title_tv);
+                contentTv = itemView.findViewById(R.id.content_tv);
+                numTv = itemView.findViewById(R.id.read_num_tv);
+            }
+        }
     }
 }

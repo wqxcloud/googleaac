@@ -1,5 +1,6 @@
 package com.example.bean;
 
+
 public class Data {
     private int mValue = 0;
     private String mUnit1 = "  元";
