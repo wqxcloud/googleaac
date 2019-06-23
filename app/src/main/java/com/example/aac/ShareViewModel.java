@@ -50,9 +50,6 @@ public class ShareViewModel extends ViewModel {
         mData.setValue(data);
     }
 
-    public void setValue(int value){
-        mData.getValue().setValue(value);
-    }
 
     public MutableLiveData<Data> getData() {
         return mData;
